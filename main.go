@@ -57,6 +57,40 @@ func createMessage(c *gin.Context) {
 	c.JSON(http.StatusCreated, msg)
 }
 
+func listMessages(c *gin.Context) {
+	db, err := openDB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer db.Close()
+
+	rows, err := db.QueryContext(c.Request.Context(),
+		"SELECT id, content, create_time FROM messages ORDER BY id ASC",
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	messages := make([]Message, 0)
+	for rows.Next() {
+		var msg Message
+		if err := rows.Scan(&msg.ID, &msg.Content, &msg.CreateTime); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		messages = append(messages, msg)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, messages)
+}
+
 func latestMessage(c *gin.Context) {
 	db, err := openDB()
 	if err != nil {
@@ -89,6 +123,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 	router.POST("/messages", createMessage)
+	router.GET("/messages", listMessages)
 	router.GET("/messages/latest", latestMessage)
 
 	workers.Serve(router)
