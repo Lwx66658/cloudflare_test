@@ -1,0 +1,15 @@
+{
+  "name": "cloudflare-test",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "db:init:local": "wrangler d1 execute cloudflare-test-db --local --file=./schema.sql",
+    "db:init:remote": "wrangler d1 execute cloudflare-test-db --remote --file=./schema.sql",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.42.0"
+  }
+}
