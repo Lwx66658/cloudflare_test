@@ -9,7 +9,7 @@
     {
       "binding": "DB",
       "database_name": "cloudflare-test-db",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "42033a9a-57e6-4bae-9d72-b3dc849a17e6"
     }
   ]
 }
