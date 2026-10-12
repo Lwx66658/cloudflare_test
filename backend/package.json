@@ -6,6 +6,7 @@
     "build": "node scripts/build.mjs",
     "db:init:local": "wrangler d1 execute cloudflare-test-db --local --file=./schema.sql",
     "db:init:remote": "wrangler d1 execute cloudflare-test-db --remote --file=./schema.sql",
+    "r2:create": "wrangler r2 bucket create cloudflare-test-images",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

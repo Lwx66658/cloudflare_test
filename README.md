@@ -1,179 +1,127 @@
-# Cloudflare D1 Message API
+# Cloudflare D1 + R2 图片 API
 
-这是一个部署在 Cloudflare Workers 上的简单后端服务，使用 Go + Gin + D1 数据库。
+这是一个部署在 Cloudflare Workers 上的 Go + Gin 后端。图片二进制保存在 R2，图片元数据保存在 D1；原有消息接口保持不变。
 
-## 项目结构
+## 图片数据表
 
-```
-├── backend/                  # 后端工程
-│   ├── main.go              # 主程序（Gin 路由 + D1 操作）
-│   ├── schema.sql           # D1 数据库表结构
-│   ├── go.mod / go.sum      # Go 依赖
-│   ├── package.json         # npm 脚本（Wrangler 构建和部署）
-│   ├── wrangler.jsonc       # Cloudflare Workers 配置
-│   ├── scripts/build.mjs    # 跨平台构建脚本（编译 Wasm）
-│   └── build/               # 构建输出（app.wasm + worker.mjs）
-└── frontend/                 # 前端代码目录
-```
+表名：`images`
 
-## 数据库设计
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | INTEGER | 自增主键 |
+| `original_name` | TEXT | 上传时的原始文件名 |
+| `object_key` | TEXT | R2 中唯一的对象键 |
+| `content_type` | TEXT | 根据文件内容识别出的 MIME 类型 |
+| `size` | INTEGER | 文件字节数 |
+| `etag` | TEXT | R2 返回的 ETag |
+| `created_at` | TEXT | 创建时间（UTC） |
 
-**表名：** `messages`
+建表 SQL 位于 `backend/schema.sql`。
 
-| 字段        | 类型    | 说明                       |
-|-------------|---------|----------------------------|
-| id          | INTEGER | 主键，自增                 |
-| content     | TEXT    | 消息内容                   |
-| create_time | TEXT    | 创建时间（ISO8601 格式）   |
+## 图片接口
 
-## API 接口
+### 上传图片
 
-### 1. 健康检查
-- **路径：** `GET /`
-- **返回：** `{"status":"ok"}`
+`POST /images`
 
-### 2. 创建消息
-- **路径：** `POST /messages`
-- **请求体：** 纯文本（消息内容）
-- **返回：** `201 Created`
-  ```json
-  {
-    "id": 1,
-    "content": "Hello from Cloudflare D1!",
-    "create_time": "2026-10-10 07:15:23"
-  }
-  ```
-
-### 3. 查询所有消息
-- **路径：** `GET /messages`
-- **返回：** `200 OK`，按 `id` 升序排列
-  ```json
-  [
-    {
-      "id": 1,
-      "content": "Hello from Cloudflare D1!",
-      "create_time": "2026-10-10 07:15:23"
-    },
-    {
-      "id": 2,
-      "content": "Testing latest message endpoint",
-      "create_time": "2026-10-10 07:16:01"
-    }
-  ]
-  ```
-- **无消息时：** `200 OK` + `[]`
-
-### 4. 查询最新消息
-- **路径：** `GET /messages/latest`
-- **返回：** `200 OK`
-  ```json
-  {
-    "id": 2,
-    "content": "Testing latest message endpoint",
-    "create_time": "2026-10-10 07:15:23"
-  }
-  ```
-- **无消息时：** `404 Not Found` + `{"error":"no messages yet"}`
-
-## 本地开发
-
-以下后端命令均在 `backend` 目录中执行：
+- 请求类型：`multipart/form-data`
+- 文件字段名：`image`
+- 文件上限：10 MiB
+- 仅接受能够识别为 `image/*` 的文件内容
+- 成功状态码：`201 Created`
 
 ```bash
-cd backend
+curl -X POST "http://127.0.0.1:8787/images" \
+  -F "image=@./photo.png"
 ```
 
-### 1. 安装依赖
-```bash
-npm install
-go mod tidy
-```
+响应示例：
 
-### 2. 初始化本地 D1 数据库
-```bash
-npm run db:init:local
-```
-
-### 3. 本地运行
-```bash
-npm run dev
-```
-服务将运行在 `http://127.0.0.1:8787`
-
-### 4. 测试（Postman 或 curl）
-```bash
-# 创建消息
-curl -X POST http://127.0.0.1:8787/messages -d "Hello World"
-
-# 获取最新消息
-curl http://127.0.0.1:8787/messages/latest
-
-# 获取所有消息
-curl http://127.0.0.1:8787/messages
-```
-
-## 部署到 Cloudflare
-
-### 1. 登录 Cloudflare
-```bash
-npx wrangler login
-```
-
-### 2. 创建 D1 数据库
-```bash
-npx wrangler d1 create cloudflare-test-db
-```
-命令会返回 `database_id`，复制它。
-
-### 3. 更新 wrangler.jsonc
-打开 `backend/wrangler.jsonc`，将 `database_id` 字段替换为上一步获取的 ID：
 ```json
 {
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "cloudflare-test-db",
-      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    }
-  ]
+  "id": 1,
+  "original_name": "photo.png",
+  "object_key": "images/2026/10/0123456789abcdef0123456789abcdef.png",
+  "content_type": "image/png",
+  "size": 12345,
+  "etag": "...",
+  "created_at": "2026-10-12 10:00:00",
+  "download_url": "/images/1/download"
 }
 ```
 
-### 4. 初始化远程数据库表
+### 图片列表
+
+`GET /images`
+
+从 D1 按 `id` 倒序返回全部图片元数据；没有数据时返回 `[]`。
+
 ```bash
-npm run db:init:remote
+curl "http://127.0.0.1:8787/images"
 ```
 
-### 5. 部署
+### 下载图片
+
+`GET /images/:id/download`
+
+根据 D1 记录读取 R2 对象，以附件形式返回原始图片。
+
 ```bash
+curl -OJ "http://127.0.0.1:8787/images/1/download"
+```
+
+## 本地开发
+
+在 `backend` 目录执行：
+
+```bash
+npm install
+go mod tidy
+npm run db:init:local
+npm run dev
+```
+
+Wrangler 会在本地模拟 D1 和 R2，默认地址为 `http://127.0.0.1:8787`。
+
+## 部署
+
+配置文件 `backend/wrangler.jsonc` 使用：
+
+- D1 绑定：`DB` → `cloudflare-test-db`
+- R2 绑定：`IMAGES` → `cloudflare-test-images`
+
+首次部署前，在 `backend` 目录执行：
+
+```bash
+npx wrangler login
+npm run r2:create
+npm run db:init:remote
 npm run deploy
 ```
-部署成功后，Cloudflare 会返回 Worker 的 URL，例如：
+
+如果 R2 桶已在 Cloudflare 控制台创建，请跳过 `npm run r2:create`。如果修改了数据库名或 R2 桶名，请同步修改 `wrangler.jsonc`。
+
+## Cloudflare 控制台配置
+
+1. 进入 **Storage & databases → R2 → Overview**，创建名为 `cloudflare-test-images` 的桶。
+2. 进入 **Storage & databases → D1**，打开 `cloudflare-test-db`，在 **Console** 中执行 `backend/schema.sql` 的 SQL。
+3. 进入 **Workers & Pages → cloudflare-test → Bindings**，确认：
+   - D1 database 变量名为 `DB`，资源为 `cloudflare-test-db`；
+   - R2 bucket 变量名为 `IMAGES`，资源为 `cloudflare-test-images`。
+4. 绑定发生变更后重新部署 Worker，再使用上面的 curl 命令测试线上 URL。
+
+R2 桶不需要开启公开访问；下载由 Worker 接口完成。
+
+## 项目结构
+
+```text
+├── backend/
+│   ├── main.go
+│   ├── schema.sql
+│   ├── wrangler.jsonc
+│   ├── package.json
+│   └── scripts/build.mjs
+└── frontend/
 ```
-https://cloudflare-test.<YOUR_SUBDOMAIN>.workers.dev
-```
 
-### 6. 测试线上环境
-```bash
-curl -X POST https://cloudflare-test.<YOUR_SUBDOMAIN>.workers.dev/messages -d "Production test"
-curl https://cloudflare-test.<YOUR_SUBDOMAIN>.workers.dev/messages/latest
-```
-
-## 技术栈
-
-- **语言：** Go 1.26.4
-- **框架：** Gin (net/http 兼容)
-- **运行时：** Cloudflare Workers (WebAssembly)
-- **数据库：** Cloudflare D1 (SQLite-compatible)
-- **构建工具：** wrangler 4.42.0
-
-## 注意事项
-
-1. **WASM 体积：** 当前 Wasm 文件约 23MB，如需优化可考虑改用 TinyGo。
-2. **时区：** D1 的 `datetime('now')` 返回 UTC 时间。
-3. **限制：** Cloudflare Workers 免费层有请求数限制，详见 [Cloudflare 定价](https://developers.cloudflare.com/workers/platform/pricing/)。
-4. **错误处理：** 生产环境建议增加日志、限流等中间件。
-
-## 许可
-
-MIT
+注意：D1 的 `datetime('now')` 返回 UTC 时间。
