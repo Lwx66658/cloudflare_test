@@ -5,13 +5,15 @@
 ## 项目结构
 
 ```
-├── main.go              # 主程序（Gin 路由 + D1 操作）
-├── schema.sql           # D1 数据库表结构
-├── go.mod / go.sum      # Go 依赖
-├── package.json         # npm 脚本（wrangler 构建和部署）
-├── wrangler.jsonc       # Cloudflare Workers 配置
-├── scripts/build.mjs    # 跨平台构建脚本（编译 Wasm）
-└── build/               # 构建输出（app.wasm + worker.mjs）
+├── backend/                  # 后端工程
+│   ├── main.go              # 主程序（Gin 路由 + D1 操作）
+│   ├── schema.sql           # D1 数据库表结构
+│   ├── go.mod / go.sum      # Go 依赖
+│   ├── package.json         # npm 脚本（Wrangler 构建和部署）
+│   ├── wrangler.jsonc       # Cloudflare Workers 配置
+│   ├── scripts/build.mjs    # 跨平台构建脚本（编译 Wasm）
+│   └── build/               # 构建输出（app.wasm + worker.mjs）
+└── frontend/                 # 前端代码目录
 ```
 
 ## 数据库设计
@@ -42,7 +44,26 @@
   }
   ```
 
-### 3. 查询最新消息
+### 3. 查询所有消息
+- **路径：** `GET /messages`
+- **返回：** `200 OK`，按 `id` 升序排列
+  ```json
+  [
+    {
+      "id": 1,
+      "content": "Hello from Cloudflare D1!",
+      "create_time": "2026-10-10 07:15:23"
+    },
+    {
+      "id": 2,
+      "content": "Testing latest message endpoint",
+      "create_time": "2026-10-10 07:16:01"
+    }
+  ]
+  ```
+- **无消息时：** `200 OK` + `[]`
+
+### 4. 查询最新消息
 - **路径：** `GET /messages/latest`
 - **返回：** `200 OK`
   ```json
@@ -55,6 +76,12 @@
 - **无消息时：** `404 Not Found` + `{"error":"no messages yet"}`
 
 ## 本地开发
+
+以下后端命令均在 `backend` 目录中执行：
+
+```bash
+cd backend
+```
 
 ### 1. 安装依赖
 ```bash
@@ -80,6 +107,9 @@ curl -X POST http://127.0.0.1:8787/messages -d "Hello World"
 
 # 获取最新消息
 curl http://127.0.0.1:8787/messages/latest
+
+# 获取所有消息
+curl http://127.0.0.1:8787/messages
 ```
 
 ## 部署到 Cloudflare
@@ -96,7 +126,7 @@ npx wrangler d1 create cloudflare-test-db
 命令会返回 `database_id`，复制它。
 
 ### 3. 更新 wrangler.jsonc
-打开 `wrangler.jsonc`，将 `database_id` 字段替换为上一步获取的 ID：
+打开 `backend/wrangler.jsonc`，将 `database_id` 字段替换为上一步获取的 ID：
 ```json
 {
   "d1_databases": [
