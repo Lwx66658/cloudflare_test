@@ -5,6 +5,9 @@
   "build": {
     "command": "npm run build"
   },
+  "assets": {
+    "directory": "../frontend/dist"
+  },
   "d1_databases": [
     {
       "binding": "DB",

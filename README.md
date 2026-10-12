@@ -1,6 +1,6 @@
 # Cloudflare D1 + R2 图片 API
 
-这是一个部署在 Cloudflare Workers 上的 Go + Gin 后端。图片二进制保存在 R2，图片元数据保存在 D1；原有消息接口保持不变。
+这是一个部署在 Cloudflare Workers 上的 Go + Gin 应用。前端静态文件通过 Worker Static Assets 提供，API 使用 D1；启用 R2 后，图片二进制保存在 R2，图片元数据保存在 D1。
 
 ## 图片数据表
 
@@ -89,6 +89,7 @@ Wrangler 会在本地模拟 D1 和 R2，默认地址为 `http://127.0.0.1:8787`�
 
 - D1 绑定：`DB` → `cloudflare-test-db`
 - R2 绑定：当前已在 `wrangler.jsonc` 中注释；创建存储桶后再启用 `IMAGES` → `cloudflare-test-images`
+- Static Assets：`../frontend/dist`，与后端一起部署到同一个 Worker
 
 首次部署前，在 `backend` 目录执行：
 

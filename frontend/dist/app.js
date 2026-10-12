@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "http://127.0.0.1:8787";
+const DEFAULT_API_URL = window.location.origin;
 const API_URL_KEY = "cloudflare-test-api-url";
 
 const elements = {
