@@ -88,7 +88,7 @@ Wrangler 会在本地模拟 D1 和 R2，默认地址为 `http://127.0.0.1:8787`�
 配置文件 `backend/wrangler.jsonc` 使用：
 
 - D1 绑定：`DB` → `cloudflare-test-db`
-- R2 绑定：`IMAGES` → `cloudflare-test-images`
+- R2 绑定：当前已在 `wrangler.jsonc` 中注释；创建存储桶后再启用 `IMAGES` → `cloudflare-test-images`
 
 首次部署前，在 `backend` 目录执行：
 

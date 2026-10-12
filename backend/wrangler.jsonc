@@ -11,11 +11,12 @@
       "database_name": "cloudflare-test-db",
       "database_id": "42033a9a-57e6-4bae-9d72-b3dc849a17e6"
     }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGES",
-      "bucket_name": "cloudflare-test-images"
-    }
   ]
+  // R2 尚未创建，先停用绑定。创建 cloudflare-test-images 后取消下面的注释。
+  // ,"r2_buckets": [
+  //   {
+  //     "binding": "IMAGES",
+  //     "bucket_name": "cloudflare-test-images"
+  //   }
+  // ]
 }
