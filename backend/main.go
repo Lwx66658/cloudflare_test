@@ -40,6 +40,18 @@ type Image struct {
 	DownloadURL  string `json:"download_url"`
 }
 
+func corsMiddleware(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	c.Header("Access-Control-Allow-Headers", "Content-Type")
+	c.Header("Access-Control-Expose-Headers", "Content-Disposition, Content-Length, ETag")
+	if c.Request.Method == http.MethodOptions {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
+	c.Next()
+}
+
 func openDB() (*sql.DB, error) {
 	connector, err := d1.OpenConnector("DB")
 	if err != nil {
@@ -372,6 +384,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(corsMiddleware)
 
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

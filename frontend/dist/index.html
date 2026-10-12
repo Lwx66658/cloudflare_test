@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Cloudflare Workers、D1 与 R2 接口测试面板" />
+    <title>Cloudflare API 控制台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__inner">
+        <p class="eyebrow">CLOUDFLARE · FRONTEND / BACKEND</p>
+        <div class="hero__row">
+          <div>
+            <h1>API 控制台</h1>
+            <p class="hero__copy">一个简单的前端页面，用来验证 Pages、Workers、D1 与 R2 的连接。</p>
+          </div>
+          <div class="health" aria-live="polite">
+            <span id="health-dot" class="health__dot"></span>
+            <span id="health-text">尚未检查</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="card settings-card" aria-labelledby="settings-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">连接设置</p>
+            <h2 id="settings-title">后端 Worker 地址</h2>
+          </div>
+          <button id="check-health" class="button button--secondary" type="button">检查连接</button>
+        </div>
+        <div class="url-row">
+          <label class="sr-only" for="api-url">后端 API 地址</label>
+          <input id="api-url" type="url" spellcheck="false" placeholder="https://cloudflare-test.example.workers.dev" />
+          <button id="save-api-url" class="button" type="button">保存地址</button>
+        </div>
+        <p class="hint">地址会保存在当前浏览器中。请不要在末尾填写接口路径。</p>
+      </section>
+
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+      <div class="grid">
+        <section class="card" aria-labelledby="messages-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">D1 DATABASE</p>
+              <h2 id="messages-title">消息接口</h2>
+            </div>
+            <button id="refresh-messages" class="icon-button" type="button" aria-label="刷新消息列表" title="刷新">↻</button>
+          </div>
+
+          <form id="message-form" class="stack">
+            <label for="message-content">创建一条消息</label>
+            <textarea id="message-content" rows="3" maxlength="1000" placeholder="输入消息内容…" required></textarea>
+            <button class="button" type="submit">发送消息</button>
+          </form>
+
+          <div class="latest-block">
+            <span class="label">最新消息</span>
+            <p id="latest-message" class="muted">点击刷新后显示</p>
+          </div>
+
+          <div class="list-heading">
+            <span class="label">全部消息</span>
+            <span id="message-count" class="count">0</span>
+          </div>
+          <ul id="message-list" class="data-list">
+            <li class="empty">暂无数据</li>
+          </ul>
+        </section>
+
+        <section class="card" aria-labelledby="images-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">R2 STORAGE</p>
+              <h2 id="images-title">图片接口</h2>
+            </div>
+            <button id="refresh-images" class="icon-button" type="button" aria-label="刷新图片列表" title="刷新">↻</button>
+          </div>
+
+          <form id="image-form" class="stack">
+            <label for="image-file">上传图片</label>
+            <input id="image-file" class="file-input" type="file" name="image" accept="image/*" required />
+            <p id="selected-file" class="hint">最大 10 MiB</p>
+            <button class="button" type="submit">上传到 R2</button>
+          </form>
+
+          <div class="list-heading list-heading--spaced">
+            <span class="label">图片列表</span>
+            <span id="image-count" class="count">0</span>
+          </div>
+          <ul id="image-list" class="data-list">
+            <li class="empty">暂无数据</li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer>Cloudflare Pages 前端 · Cloudflare Workers 后端</footer>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
